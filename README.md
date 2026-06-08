@@ -4,4 +4,4 @@ Namerava narediti šah pri katerem koda prepozna kdo je na potezi, kako se lahko
 
 
 
-Avtorja sva Ambrož Pleško in Matija Matanic
+Avtorja sva Ambrož Pleško in Matija Matanić
