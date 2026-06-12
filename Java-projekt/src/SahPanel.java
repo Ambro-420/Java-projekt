@@ -1,6 +1,10 @@
 import java.awt.Color;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.BasicStroke;
+import java.awt.Stroke;
+import javax.swing.JButton;
 import javax.swing.JPanel;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
@@ -16,17 +20,26 @@ import java.util.List;
 
 @SuppressWarnings("serial")
 public class SahPanel extends JPanel {
+	private static final int STATUS_HEIGHT = 30;
 	private Figures[][] figures = new Figures[8][8];
 	private Figures selectedFigure = null;
 	private Map<String, BufferedImage> images = new HashMap<>();
 	private List<Point> legalMoves = new ArrayList<>();
+	private JButton restartButton = new JButton("Nova igra");
+	private boolean whiteTurn = true;
+	private boolean gameOver = false;
+	private String message = "Beli je na potezi";
 	
     public SahPanel() {
         super();
         setBackground(Color.WHITE);
+        setLayout(null);
         
         initFigures();
         loadImages();
+        restartButton.setVisible(false);
+        restartButton.addActionListener(e -> resetGame());
+        add(restartButton);
         addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
@@ -36,12 +49,20 @@ public class SahPanel extends JPanel {
     }
     
     private void handleClick(int mouseX, int mouseY) {
+    	if (gameOver) {
+    		return;
+    	}
 
-        int velPolje = Math.min(getWidth(), getHeight()) / 8;
+        int velPolje = Math.min(getWidth(), getHeight() - STATUS_HEIGHT) / 8;
         int velikostSahovnice = 8 * velPolje;
 
         int odmikX = (getWidth() - velikostSahovnice) / 2;
         int odmikY = (getHeight() - velikostSahovnice) / 2;
+
+        if (mouseX < odmikX || mouseX >= odmikX + velikostSahovnice ||
+            mouseY < odmikY || mouseY >= odmikY + velikostSahovnice) {
+        	return;
+        }
 
         int col = (mouseX - odmikX) / velPolje;
         int row = (mouseY - odmikY) / velPolje;
@@ -57,7 +78,7 @@ public class SahPanel extends JPanel {
         // ======================
         if (selectedFigure == null) {
 
-            if (clicked != null) {
+            if (clicked != null && clicked.isWhite() == whiteTurn) {
                 selectedFigure = clicked;
 
                 legalMoves = getLegalMoves(clicked);
@@ -69,12 +90,34 @@ public class SahPanel extends JPanel {
         // ======================
         else {
 
-            if (selectedFigure.isValidMove(figures, row, col)) {
+        	if (clicked != null && clicked.isWhite() == selectedFigure.isWhite()) {
+        		selectedFigure = clicked;
+        		legalMoves = getLegalMoves(clicked);
+        		repaint();
+        		return;
+        	}
+
+            if (canMoveTo(selectedFigure, row, col)) {
 
                 figures[selectedFigure.getRow()][selectedFigure.getCol()] = null;
 
                 selectedFigure.setPosition(row, col);
                 figures[row][col] = selectedFigure;
+
+                whiteTurn = !whiteTurn;
+
+                if (isKingInCheck(whiteTurn) && !hasLegalMove(whiteTurn)) {
+                	gameOver = true;
+                	message = (whiteTurn ? "Beli" : "Črni") + " je v šahmatu, " +
+                	          (whiteTurn ? "črni" : "beli") + " je zmagal.";
+                } else if (isKingInCheck(whiteTurn)) {
+                	message = (whiteTurn ? "Beli" : "Crni") + " je v šahu";
+                } else if (!hasLegalMove(whiteTurn)) {
+                	gameOver = true;
+                	message = "Remi - pat";
+                } else {
+                	message = whiteTurn ? "Beli je na potezi" : "Crni je na potezi";
+                }
             }
 
             selectedFigure = null;
@@ -85,12 +128,12 @@ public class SahPanel extends JPanel {
     }
     
     @Override
-    public void paint(Graphics g) {
-        super.paint(g);
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
 
         Graphics2D graphics = (Graphics2D) g;
 
-        int velPolje = Math.min(getWidth(), getHeight()) / 8;
+        int velPolje = Math.min(getWidth(), getHeight() - STATUS_HEIGHT) / 8;
         int velikostSahovnice = 8 * velPolje;
 
         int odmikX = (getWidth() - velikostSahovnice) / 2;
@@ -146,9 +189,26 @@ public class SahPanel extends JPanel {
                 dotSize
             );
         }
+
+        drawCheckBorder(graphics, velPolje, odmikX, odmikY, true);
+        drawCheckBorder(graphics, velPolje, odmikX, odmikY, false);
+
+        graphics.setColor(Color.BLACK);
+        graphics.drawString(message, odmikX, odmikY + velikostSahovnice + 20);
+
+        if (gameOver) {
+        	drawGameOver(graphics, odmikX, odmikY, velikostSahovnice);
+        } else {
+        	restartButton.setVisible(false);
+        }
     }
     
     private void initFigures() {
+    	for (int r = 0; r < 8; r++) {
+    		for (int c = 0; c < 8; c++) {
+    			figures[r][c] = null;
+    		}
+    	}
 
         // ======================
         // PAWNS (kmetje)
@@ -182,6 +242,17 @@ public class SahPanel extends JPanel {
         figures[7][6] = new Figures(Figures.Type.KNIGHT, true, 7, 6);
         figures[7][7] = new Figures(Figures.Type.ROOK, true, 7, 7);
     }
+
+    private void resetGame() {
+    	initFigures();
+    	selectedFigure = null;
+    	legalMoves.clear();
+    	whiteTurn = true;
+    	gameOver = false;
+    	message = "Beli je na potezi";
+    	restartButton.setVisible(false);
+    	repaint();
+    }
     
     private List<Point> getLegalMoves(Figures f) {
 
@@ -190,13 +261,150 @@ public class SahPanel extends JPanel {
         for (int r = 0; r < 8; r++) {
             for (int c = 0; c < 8; c++) {
 
-                if (f.isValidMove(figures, r, c)) {
+                if (canMoveTo(f, r, c)) {
                     moves.add(new Point(r, c));
                 }
             }
         }
 
         return moves;
+    }
+
+    private boolean canMoveTo(Figures f, int row, int col) {
+    	if (f == null) {
+    		return false;
+    	}
+
+    	Figures target = figures[row][col];
+
+    	if (target != null && target.isWhite() == f.isWhite()) {
+    		return false;
+    	}
+
+    	if (target != null && target.getType() == Figures.Type.KING) {
+    		return false;
+    	}
+
+    	if (!f.isValidMove(figures, row, col)) {
+    		return false;
+    	}
+
+    	return !wouldLeaveKingInCheck(f, row, col);
+    }
+
+    private boolean wouldLeaveKingInCheck(Figures f, int newRow, int newCol) {
+    	int oldRow = f.getRow();
+    	int oldCol = f.getCol();
+    	Figures target = figures[newRow][newCol];
+
+    	figures[oldRow][oldCol] = null;
+    	figures[newRow][newCol] = f;
+    	f.setPosition(newRow, newCol);
+
+    	boolean inCheck = isKingInCheck(f.isWhite());
+
+    	figures[oldRow][oldCol] = f;
+    	figures[newRow][newCol] = target;
+    	f.setPosition(oldRow, oldCol);
+
+    	return inCheck;
+    }
+
+    private boolean isKingInCheck(boolean whiteKing) {
+    	Point king = findKing(whiteKing);
+
+    	if (king == null) {
+    		return false;
+    	}
+
+    	for (int r = 0; r < 8; r++) {
+    		for (int c = 0; c < 8; c++) {
+    			Figures f = figures[r][c];
+
+    			if (f != null && f.isWhite() != whiteKing &&
+    				f.isValidMove(figures, king.x, king.y)) {
+    				return true;
+    			}
+    		}
+    	}
+
+    	return false;
+    }
+
+    private Point findKing(boolean whiteKing) {
+    	for (int r = 0; r < 8; r++) {
+    		for (int c = 0; c < 8; c++) {
+    			Figures f = figures[r][c];
+
+    			if (f != null && f.isWhite() == whiteKing &&
+    				f.getType() == Figures.Type.KING) {
+    				return new Point(r, c);
+    			}
+    		}
+    	}
+
+    	return null;
+    }
+
+    private boolean hasLegalMove(boolean whitePlayer) {
+    	for (int r = 0; r < 8; r++) {
+    		for (int c = 0; c < 8; c++) {
+    			Figures f = figures[r][c];
+
+    			if (f != null && f.isWhite() == whitePlayer) {
+    				for (int newRow = 0; newRow < 8; newRow++) {
+    					for (int newCol = 0; newCol < 8; newCol++) {
+    						if (canMoveTo(f, newRow, newCol)) {
+    							return true;
+    						}
+    					}
+    				}
+    			}
+    		}
+    	}
+
+    	return false;
+    }
+
+    private void drawCheckBorder(Graphics2D g, int size, int offsetX, int offsetY, boolean whiteKing) {
+    	if (!isKingInCheck(whiteKing)) {
+    		return;
+    	}
+
+    	Point king = findKing(whiteKing);
+
+    	if (king == null) {
+    		return;
+    	}
+
+    	int x = offsetX + king.y * size;
+    	int y = offsetY + king.x * size;
+
+    	Stroke oldStroke = g.getStroke();
+    	g.setColor(Color.RED);
+    	g.setStroke(new BasicStroke(4.0f));
+    	g.drawRect(x + 2, y + 2, size - 4, size - 4);
+    	g.setStroke(oldStroke);
+    }
+
+    private void drawGameOver(Graphics2D g, int offsetX, int offsetY, int boardSize) {
+    	g.setColor(new Color(0, 0, 0, 150));
+    	g.fillRect(offsetX, offsetY, boardSize, boardSize);
+
+    	g.setColor(Color.WHITE);
+    	g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 42));
+    	g.drawString("GAME OVER", offsetX + boardSize / 2 - 135, offsetY + boardSize / 2 - 20);
+
+    	g.setFont(new Font(Font.SANS_SERIF, Font.BOLD, 16));
+    	g.drawString(message, offsetX + boardSize / 2 - 120, offsetY + boardSize / 2 + 15);
+
+    	int buttonWidth = 130;
+    	int buttonHeight = 35;
+    	int buttonX = offsetX + boardSize / 2 - buttonWidth / 2;
+    	int buttonY = offsetY + boardSize / 2 + 40;
+
+    	restartButton.setBounds(buttonX, buttonY, buttonWidth, buttonHeight);
+    	restartButton.setVisible(true);
     }
     
     private void loadImages() {

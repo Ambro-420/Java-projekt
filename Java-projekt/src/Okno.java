@@ -7,7 +7,7 @@ public class Okno extends JFrame {
 
 
 	public Okno() {
-        super("Sah");
+        super("Šah");
 
         setSize(new Dimension(700, 700));
         setMinimumSize(new Dimension(500, 500));

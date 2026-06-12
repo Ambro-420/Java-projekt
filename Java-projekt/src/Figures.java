@@ -82,10 +82,17 @@ public class Figures {
     private boolean validPawn(Figures[][] board, int newRow, int newCol) {
 
         int dir = isWhite() ? -1 : 1;
+        int startRow = isWhite() ? 6 : 1;
 
         // premik naprej
         if (newCol == col && board[newRow][newCol] == null) {
-            return newRow == row + dir;
+            if (newRow == row + dir) {
+                return true;
+            }
+
+            if (row == startRow && newRow == row + 2 * dir) {
+                return board[row + dir][col] == null;
+            }
         }
 
         // diagonalni “capture”
