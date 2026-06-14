@@ -73,9 +73,7 @@ public class SahPanel extends JPanel {
 
         Figures clicked = figures[row][col];
 
-        // ======================
-        // 1. NI izbrane figure
-        // ======================
+        // Ni izbrane figure
         if (selectedFigure == null) {
 
             if (clicked != null && clicked.isWhite() == whiteTurn) {
@@ -85,9 +83,8 @@ public class SahPanel extends JPanel {
             }
 
         }
-        // ======================
-        // 2. JE izbrana figura
-        // ======================
+
+        // Je izbrana figura
         else {
 
         	if (clicked != null && clicked.isWhite() == selectedFigure.isWhite()) {
@@ -210,17 +207,13 @@ public class SahPanel extends JPanel {
     		}
     	}
 
-        // ======================
-        // PAWNS (kmetje)
-        // ======================
+        // Kmetje
         for (int c = 0; c < 8; c++) {
             figures[1][c] = new Figures(Figures.Type.PAWN, false, 1, c); // črni
             figures[6][c] = new Figures(Figures.Type.PAWN, true, 6, c);  // beli
         }
 
-        // ======================
-        // ČRNI (zgornja vrsta)
-        // ======================
+        // Črni
         figures[0][0] = new Figures(Figures.Type.ROOK, false, 0, 0);
         figures[0][1] = new Figures(Figures.Type.KNIGHT, false, 0, 1);
         figures[0][2] = new Figures(Figures.Type.BISHOP, false, 0, 2);
@@ -230,9 +223,7 @@ public class SahPanel extends JPanel {
         figures[0][6] = new Figures(Figures.Type.KNIGHT, false, 0, 6);
         figures[0][7] = new Figures(Figures.Type.ROOK, false, 0, 7);
 
-        // ======================
-        // BELI (spodnja vrsta)
-        // ======================
+        // Beli
         figures[7][0] = new Figures(Figures.Type.ROOK, true, 7, 0);
         figures[7][1] = new Figures(Figures.Type.KNIGHT, true, 7, 1);
         figures[7][2] = new Figures(Figures.Type.BISHOP, true, 7, 2);
